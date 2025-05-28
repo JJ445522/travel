@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>訂房系統模擬</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      font-family: "微軟正黑體", sans-serif;
+      background-color: #f2f2f2;
+      padding: 30px;
+    }
+
+    .booking-header {
+      background-color: #fff;
+      border: 2px solid #ffcc00;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .booking-header input,
+    .booking-header select,
+    .booking-header button {
+      font-size: 16px;
+      padding: 8px;
+      margin: 0 5px;
+    }
+
+    .guest-box {
+      position: relative;
+    }
+
+    .guest-display {
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      background-color: white;
+    }
+
+    .guest-panel {
+      display: none;
+      position: absolute;
+      top: 45px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .guest-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .guest-row span {
+      width: 50px;
+    }
+
+    .guest-controls {
+      display: flex;
+      align-items: center;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .guest-controls button {
+      width: 30px;
+      border: none;
+      background-color: transparent;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .guest-count {
+      width: 40px;
+      text-align: center;
+      border-left: 1px solid #ccc;
+      border-right: 1px solid #ccc;
+    }
+
+    .guest-panel .done-btn {
+      display: block;
+      margin: 10px auto 0;
+      padding: 5px 20px;
+      border: 1px solid #007aff;
+      background-color: #fff;
+      color: #007aff;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .calendar { display: flex; gap: 20px; }
+    .month { background-color: white; border-radius: 8px; padding: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+    .month h3 { text-align: center; margin: 10px 0; }
+    .weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 14px; }
+    .days div { padding: 10px 0; border-radius: 5px; position: relative; color: #666; cursor: pointer; }
+    .days div.price::after { content: '62.7K'; display: block; font-size: 12px; color: #999; }
+    .selected { background-color: #007aff; color: white !important; }
+
+    .room-table { background-color: white; border-collapse: collapse; width: 100%; margin-top: 20px; border: 1px solid #ccc; }
+    .room-table th, .room-table td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    .room-table td.status { color: red; font-weight: bold; }
+    .material-icons { vertical-align: middle; font-size: 20px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="booking-header">
+    <div>
+      <label>入住：</label>
+      <input type="date" id="checkin" value="2025-06-03">
+      <label>退房：</label>
+      <input type="date" id="checkout" value="2025-06-19">
+    </div>
+    <div class="guest-box">
+      <div class="guest-display" onclick="toggleGuestPanel()">
+        <span id="guest-summary">2 位成人・0 位孩童・1 間房</span>
+      </div>
+      <div class="guest-panel" id="guest-panel">
+        <div class="guest-row">
+          <span>成人</span>
+          <div class="guest-controls">
+            <button onclick="updateGuest('adult', -1)">−</button>
+            <span class="guest-count" id="adult-count">2</span>
+            <button onclick="updateGuest('adult', 1)">＋</button>
+          </div>
+        </div>
+        <div class="guest-row">
+          <span>孩童</span>
+          <div class="guest-controls">
+            <button onclick="updateGuest('child', -1)">−</button>
+            <span class="guest-count" id="child-count">0</span>
+            <button onclick="updateGuest('child', 1)">＋</button>
+          </div>
+        </div>
+        <div class="guest-row">
+          <span>客房</span>
+          <div class="guest-controls">
+            <button onclick="updateGuest('room', -1)">−</button>
+            <span class="guest-count" id="room-count">1</span>
+            <button onclick="updateGuest('room', 1)">＋</button>
+          </div>
+        </div>
+        <button class="done-btn" onclick="toggleGuestPanel(true)">完成</button>
+      </div>
+    </div>
+    <button onclick="updateAvailability()">更改搜尋條件</button>
+  </div>
+
+
+
+  <table class="room-table">
+    <thead>
+      <tr>
+        <th>房型</th>
+        <th>人數</th>
+        <th id="room-status">房價</th>
+      </tr>
+    </thead>
+    <tbody>
+	  <tr>
+        <td><span class="material-icons">people</span> 孤兒單人房</td>
+        <td>1位</td>
+        <td class="status">所選日期本暫無空房</td>
+      </tr>
+      <tr>
+        <td><span class="material-icons">people</span> 標準雙人房</td>
+        <td>2位</td>
+        <td class="status">所選日期本暫無空房</td>
+      </tr>
+      <tr>
+        <td><span class="material-icons">people</span> 豪華四人房</td>
+        <td>4位</td>
+        <td class="status">所選日期本暫無空房</td>
+      </tr>
+      <tr>
+        <td><span class="material-icons">people</span> 景觀三人房</td>
+        <td>3位</td>
+        <td class="status">所選日期本暫無空房</td>
+      </tr>
+    </tbody>
+  </table>
+      <style>
+.submit-container {
+  text-align: right;
+}
+.submit-btn {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>
+
+
+<div class="submit-container">
+    <button class="submit-btn" onclick="alert('成功送出')">送出</button>
+  </div>
+
+
+  <script>
+    let selectedStart = null;
+    let selectedEnd = null;
+    const days = document.querySelectorAll('.days .price');
+
+    days.forEach(day => {
+      day.addEventListener('click', () => {
+        if (!selectedStart || selectedEnd) {
+          selectedStart = day;
+          selectedEnd = null;
+          days.forEach(d => d.classList.remove('selected'));
+          day.classList.add('selected');
+        } else {
+          selectedEnd = day;
+          const startIndex = Array.from(days).indexOf(selectedStart);
+          const endIndex = Array.from(days).indexOf(selectedEnd);
+          if (endIndex > startIndex) {
+            for (let i = startIndex; i <= endIndex; i++) {
+              days[i].classList.add('selected');
+            }
+          } else {
+            selectedStart = day;
+            selectedEnd = null;
+            days.forEach(d => d.classList.remove('selected'));
+            day.classList.add('selected');
+          }
+        }
+      });
+    });
+
+    function updateAvailability() {
+      const statusCells = document.querySelectorAll(".room-table td.status");
+      const random = Math.random();
+
+      statusCells.forEach(cell => {
+        if (random > 0.5) {
+          cell.textContent = "TWD 62,700";
+          cell.style.color = "green";
+        } else {
+          cell.textContent = "所選日期本站無空房";
+          cell.style.color = "red";
+        }
+      });
+    }
+
+    const guestCounts = {
+      adult: 2,
+      child: 0,
+      room: 1
+    };
+
+    function toggleGuestPanel(close = false) {
+      const panel = document.getElementById('guest-panel');
+      if (close) {
+        panel.style.display = 'none';
+        document.getElementById('guest-summary').textContent = `${guestCounts.adult} 位成人・${guestCounts.child} 位孩童・${guestCounts.room} 間房`;
+      } else {
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+      }
+    }
+
+    function updateGuest(type, delta) {
+      guestCounts[type] = Math.max(0, guestCounts[type] + delta);
+      document.getElementById(`${type}-count`).textContent = guestCounts[type];
+    }
+
+  </script>
+</body>
+</html>
